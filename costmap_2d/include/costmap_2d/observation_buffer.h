@@ -83,11 +83,9 @@ public:
   ~ObservationBuffer();
 
   /**
-   * @brief Sets the global frame of an observation buffer. This will
-   * transform all the currently cached observations to the new global
-   * frame
-   * @param new_global_frame The name of the new global frame.
-   * @return True if the operation succeeds, false otherwise
+   * @brief     设置全局坐标系(global frame),并将之前保存的可视化数据转换到新的坐标系上
+   * @param     new_global_frame 新的全局坐标系的名称.
+   * @return    如果操作成功返回true,否则返回false
    */
   bool setGlobalFrame(const std::string new_global_frame);
 

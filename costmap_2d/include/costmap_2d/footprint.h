@@ -48,8 +48,7 @@ namespace costmap_2d
 {
 
 /**
- * @brief Calculate the extreme distances for the footprint
- *
+ * @brief Calculate the extreme distances for the footprint 计算原点到footprint的最大与最小距离
  * @param footprint The footprint to examine
  * @param min_dist Output parameter of the minimum distance
  * @param max_dist Output parameter of the maximum distance
