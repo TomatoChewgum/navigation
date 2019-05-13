@@ -99,6 +99,10 @@ void LayeredCostmap::updateMap(double robot_x, double robot_y, double robot_yaw)
   boost::unique_lock<Costmap2D::mutex_t> lock(*(costmap_.getMutex()));
 
   // if we're using a rolling buffer costmap... we need to update the origin using the robot's position
+
+  /****************************************
+   * 局部路径规划时使用此参数,这时机器人只关心掉落到此范围内的障碍物信息
+   ***************************************/
   if (rolling_window_)
   {
     double new_origin_x = robot_x - costmap_.getSizeInMetersX() / 2;
@@ -111,7 +115,9 @@ void LayeredCostmap::updateMap(double robot_x, double robot_y, double robot_yaw)
 
   minx_ = miny_ = 1e30;
   maxx_ = maxy_ = -1e30;
-
+  /****************************************
+   * 计算需要更新的区域
+   ***************************************/
   for (vector<boost::shared_ptr<Layer> >::iterator plugin = plugins_.begin(); plugin != plugins_.end();
        ++plugin)
   {
@@ -131,6 +137,11 @@ void LayeredCostmap::updateMap(double robot_x, double robot_y, double robot_yaw)
   }
 
   int x0, xn, y0, yn;
+
+  /****************************************
+   * 将Bounds的坐标系从world转换到map坐标系上
+   * 即将单位由米转换为Cell
+   ***************************************/
   costmap_.worldToMapEnforceBounds(minx_, miny_, x0, y0);
   costmap_.worldToMapEnforceBounds(maxx_, maxy_, xn, yn);
 
@@ -144,7 +155,15 @@ void LayeredCostmap::updateMap(double robot_x, double robot_y, double robot_yaw)
   if (xn < x0 || yn < y0)
     return;
 
+
+  /****************************************
+   * 重置这个区域内的数据
+   ***************************************/
   costmap_.resetMap(x0, y0, xn, yn);
+
+  /****************************************
+   * 计算更新区域的Cost值
+   ***************************************/
   for (vector<boost::shared_ptr<Layer> >::iterator plugin = plugins_.begin(); plugin != plugins_.end();
        ++plugin)
   {
@@ -173,6 +192,10 @@ bool LayeredCostmap::isCurrent()
 void LayeredCostmap::setFootprint(const std::vector<geometry_msgs::Point>& footprint_spec)
 {
   footprint_ = footprint_spec;
+
+  /****************************************
+   * 计算机器人的内切圆外切圆
+   ***************************************/
   costmap_2d::calculateMinAndMaxDistances(footprint_spec, inscribed_radius_, circumscribed_radius_);
 
   for (vector<boost::shared_ptr<Layer> >::iterator plugin = plugins_.begin(); plugin != plugins_.end();

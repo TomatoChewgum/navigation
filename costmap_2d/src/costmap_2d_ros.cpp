@@ -49,7 +49,10 @@ using namespace std;
 
 namespace costmap_2d
 {
-
+/****************************************
+ * 将参数由旧的命名空间转移到新的命名空间中
+ * 然后删除旧的命名空间中的参数
+ ***************************************/
 void move_parameter(ros::NodeHandle& old_h, ros::NodeHandle& new_h, std::string name, bool should_delete = true)
 {
   if (!old_h.hasParam(name))
@@ -84,7 +87,10 @@ Costmap2DROS::Costmap2DROS(const std::string& name, tf2_ros::Buffer& tf) :
 
   ros::NodeHandle private_nh("~/" + name);
   ros::NodeHandle g_nh;
-
+/****************************************
+ * 获取全局坐标系与机器人坐标系,
+ * 然后测试两个坐标系能否相互转换,直到可以转换为止.
+  **************************************/
   // get two frames
   private_nh.param("global_frame", global_frame_, std::string("map"));
   private_nh.param("robot_base_frame", robot_base_frame_, std::string("base_link"));
@@ -106,6 +112,12 @@ Costmap2DROS::Costmap2DROS(const std::string& name, tf2_ros::Buffer& tf) :
     // will do for the warning above. Reset the string here to avoid accumulation.
     tf_error.clear();
   }
+
+  /****************************************
+   * 加载各层Layer,如果没有`plugins`参数,则是使用pre-hydro版本,
+   * 则使用`resetOldParameters`函数添加相应的层,然后转换为`plugins`参数.
+   * 然后循环将每层Layer添加到`layered_costmap_`中,并对每层Layer进行初始化.
+    **************************************/
 
   // check if we want a rolling window version of the costmap
   bool rolling_window, track_unknown_space, always_send_full_costmap;
@@ -135,7 +147,10 @@ Costmap2DROS::Costmap2DROS(const std::string& name, tf2_ros::Buffer& tf) :
       plugin->initialize(layered_costmap_, name + "/" + pname, &tf_);
     }
   }
-
+  /****************************************
+   * 订阅`footprint`话题,接收之后首先设置footprint边框宽度
+   * 然后更新`layered_costmap`中和各个层Layer中的footprint
+   ***************************************/
   // subscribe to the footprint topic
   std::string topic_param, topic;
   if (!private_nh.searchParam("footprint_topic", topic_param))
@@ -153,24 +168,45 @@ Costmap2DROS::Costmap2DROS(const std::string& name, tf2_ros::Buffer& tf) :
 
   private_nh.param(topic_param, topic, std::string("oriented_footprint"));
   footprint_pub_ = private_nh.advertise<geometry_msgs::PolygonStamped>("footprint", 1);
-
+  /****************************************
+   * 从配置文件中读取footprint配置,然后初始化footprint
+   ***************************************/
   setUnpaddedRobotFootprint(makeFootprintFromParams(private_nh));
-
+  /****************************************
+   * 初始化costmap可视化发布器
+    **************************************/
   publisher_ = new Costmap2DPublisher(&private_nh, layered_costmap_->getCostmap(), global_frame_, "costmap",
                                       always_send_full_costmap);
 
+
+  /****************************************
+   * 设置线程执行标志
+   ***************************************/
   // create a thread to handle updating the map
   stop_updates_ = false;
   initialized_ = true;
   stopped_ = false;
 
+  /****************************************
+   * 设置检测机器人移动的定时器
+   ***************************************/
   // Create a time r to check if the robot is moving
   robot_stopped_ = false;
-  timer_ = private_nh.createTimer(ros::Duration(.1), &Costmap2DROS::movementCB, this);
 
+  /****************************************
+   * 创建定时器,以0.1秒为周期调用movementCB
+   ***************************************/
+  timer_ = private_nh.createTimer(ros::Duration(.1), &Costmap2DROS::movementCB, this);
+  /****************************************
+   * 设置动态参数配置器
+   ***************************************/
   dsrv_ = new dynamic_reconfigure::Server<Costmap2DConfig>(ros::NodeHandle("~/" + name));
   dynamic_reconfigure::Server<Costmap2DConfig>::CallbackType cb = boost::bind(&Costmap2DROS::reconfigureCB, this, _1,
                                                                               _2);
+  /****************************************
+   * 设置回调函数的同时会调用一次这个回调函数进行参数初始化
+   * 同时会开启一个地图更新线程
+   ***************************************/
   dsrv_->setCallback(cb);
 }
 
@@ -193,7 +229,15 @@ Costmap2DROS::~Costmap2DROS()
   delete layered_costmap_;
   delete dsrv_;
 }
-
+/****************************************
+ * 如果参数配置中没有plugins参数,则说明是使用的pre-hydro版本的配置方式
+ * 则在初始化的时候会调用此函数,将pre-hydro版本的配置方式转换为后面版本的配置方式
+ * 也就是按照指定方式添加plugins参数
+ * 主要是根据static_map参数添加static_map层
+ * 根据map_type选择voxel层或者是Obstacle层
+ * 然后添加Inflation层
+ * 最后将所有的层添加到plugins中
+ ***************************************/
 void Costmap2DROS::resetOldParameters(ros::NodeHandle& nh)
 {
   ROS_INFO("Loading from pre-hydro parameter style");
@@ -204,7 +248,10 @@ void Costmap2DROS::resetOldParameters(ros::NodeHandle& nh)
   XmlRpc::XmlRpcValue::ValueStruct map;
   SuperValue super_map;
   SuperValue super_array;
-
+  /****************************************
+   * 主要是根据static_map参数添加static_map层
+   * 然后将static_layer层相关的参数转移到static_layer工作空间
+   ***************************************/
   if (nh.getParam("static_map", flag) && flag)
   {
     map["name"] = XmlRpc::XmlRpcValue("static_layer");
@@ -218,7 +265,9 @@ void Costmap2DROS::resetOldParameters(ros::NodeHandle& nh)
     move_parameter(nh, map_layer, "lethal_cost_threshold");
     move_parameter(nh, map_layer, "track_unknown_space", false);
   }
-
+  /****************************************
+   * 主要是根据map_type参数选择obstacle_layer的类型
+   ***************************************/
   ros::NodeHandle obstacles(nh, "obstacle_layer");
   if (nh.getParam("map_type", s) && s == "voxel")
   {
@@ -254,7 +303,9 @@ void Costmap2DROS::resetOldParameters(ros::NodeHandle& nh)
     move_parameter(nh, obstacles, source);
   }
   move_parameter(nh, obstacles, "observation_sources");
-
+  /****************************************
+   * 设置Inflation层
+   ***************************************/
   ros::NodeHandle inflation(nh, "inflation_layer");
   move_parameter(nh, inflation, "cost_scaling_factor");
   move_parameter(nh, inflation, "inflation_radius");
@@ -267,9 +318,17 @@ void Costmap2DROS::resetOldParameters(ros::NodeHandle& nh)
   nh.setParam("plugins", super_array);
 }
 
+
+/****************************************
+ * 动态参数配置回调函数
+ ***************************************/
 void Costmap2DROS::reconfigureCB(costmap_2d::Costmap2DConfig &config, uint32_t level)
 {
   transform_tolerance_ = config.transform_tolerance;
+
+  /****************************************
+   * 删除已经存在的地图更新线程
+   ***************************************/
   if (map_update_thread_ != NULL)
   {
     map_update_thread_shutdown_ = true;
@@ -304,10 +363,15 @@ void Costmap2DROS::reconfigureCB(costmap_2d::Costmap2DConfig &config, uint32_t l
     setUnpaddedRobotFootprint(unpadded_footprint_);
   }
 
+  /****************************************
+   * 重新设置footprint
+   ***************************************/
   readFootprintFromConfig(config, old_config_);
 
   old_config_ = config;
-
+  /****************************************
+   * 开启一个新的地图更新线程
+   ***************************************/
   map_update_thread_ = new boost::thread(boost::bind(&Costmap2DROS::mapUpdateLoop, this, map_update_frequency));
 }
 
@@ -367,7 +431,9 @@ void Costmap2DROS::movementCB(const ros::TimerEvent &event)
   // make sure that the robot is not moving
   else
   {
-    old_pose_ = new_pose;
+
+    //此处可能存在问题应该在比较完成之后在进行赋值
+    //old_pose_ = new_pose;
 
     robot_stopped_ = (tf2::Vector3(old_pose_.pose.position.x, old_pose_.pose.position.y,
                                    old_pose_.pose.position.z).distance(tf2::Vector3(new_pose.pose.position.x,
@@ -379,9 +445,13 @@ void Costmap2DROS::movementCB(const ros::TimerEvent &event)
                                           new_pose.pose.orientation.y,
                                           new_pose.pose.orientation.z,
                                           new_pose.pose.orientation.w)) < 1e-3);
+    old_pose_ = new_pose;
+
   }
 }
-
+/****************************************
+ * 地图更新线程主循环
+ ***************************************/
 void Costmap2DROS::mapUpdateLoop(double frequency)
 {
   // the user might not want to run the loop every cycle
@@ -403,6 +473,10 @@ void Costmap2DROS::mapUpdateLoop(double frequency)
     end_t = end.tv_sec + double(end.tv_usec) / 1e6;
     t_diff = end_t - start_t;
     ROS_DEBUG("Map update time: %.9f", t_diff);
+
+    /****************************************
+     * 发布可视化costmap数据
+     ***************************************/
     if (publish_cycle.toSec() > 0 && layered_costmap_->isInitialized())
     {
       unsigned int x0, y0, xn, yn;
@@ -522,7 +596,9 @@ bool Costmap2DROS::getRobotPose(geometry_msgs::PoseStamped& global_pose) const
   robot_pose.header.frame_id = robot_base_frame_;
   robot_pose.header.stamp = ros::Time();
   ros::Time current_time = ros::Time::now();  // save time for checking tf delay later
-
+  /****************************************
+   * 获取机器人在全局坐标系上的位置,即机器人坐标系原点在全局坐标系上的位置
+   ***************************************/
   // get the global pose of the robot
   try
   {

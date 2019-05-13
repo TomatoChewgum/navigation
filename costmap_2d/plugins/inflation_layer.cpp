@@ -201,6 +201,9 @@ void InflationLayer::updateCosts(costmap_2d::Costmap2D& master_grid, int min_i, 
   // box min_i...max_j, by the amount cell_inflation_radius_.  Cells
   // up to that distance outside the box can still influence the costs
   // stored in cells inside the box.
+  /****************************************
+   * 按照机器人的膨胀半径扩展bounds
+   ***************************************/
   min_i -= cell_inflation_radius_;
   min_j -= cell_inflation_radius_;
   max_i += cell_inflation_radius_;
@@ -213,7 +216,9 @@ void InflationLayer::updateCosts(costmap_2d::Costmap2D& master_grid, int min_i, 
 
   // Inflation list; we append cells to visit in a list associated with its distance to the nearest obstacle
   // We use a map<distance, list> to emulate the priority queue used before, with a notable performance boost
-
+  /****************************************
+   * 将范围内障碍物格添加到Inflation队列中
+   ***************************************/
   // Start with lethal obstacles: by definition distance is 0.0
   std::vector<CellData>& obs_bin = inflation_cells_[0.0];
   for (int j = min_j; j < max_j; j++)
@@ -231,6 +236,9 @@ void InflationLayer::updateCosts(costmap_2d::Costmap2D& master_grid, int min_i, 
 
   // Process cells by increasing distance; new cells are appended to the corresponding distance bin, so they
   // can overtake previously inserted but farther away cells
+  /****************************************
+   * 计算Inflation队列单元格的cost值
+   ***************************************/
   std::map<double, std::vector<CellData> >::iterator bin;
   for (bin = inflation_cells_.begin(); bin != inflation_cells_.end(); ++bin)
   {
@@ -255,6 +263,9 @@ void InflationLayer::updateCosts(costmap_2d::Costmap2D& master_grid, int min_i, 
       unsigned int sy = cell.src_y_;
 
       // assign the cost associated with the distance from an obstacle to the cell
+      /****************************************
+       * 根据与障碍物距离查表获取当前格子的cost值,
+       ***************************************/
       unsigned char cost = costLookup(mx, my, sx, sy);
       unsigned char old_cost = master_array[index];
       if (old_cost == NO_INFORMATION && (inflate_unknown_ ? (cost > FREE_SPACE) : (cost >= INSCRIBED_INFLATED_OBSTACLE)))
@@ -263,6 +274,10 @@ void InflationLayer::updateCosts(costmap_2d::Costmap2D& master_grid, int min_i, 
         master_array[index] = std::max(old_cost, cost);
 
       // attempt to put the neighbors of the current cell onto the inflation list
+      /****************************************
+       * 添加周围格子到Inflation队列中
+       * 当与障碍物格的距离大于膨胀半径时,不会将格子添加到Inflation队列中
+       ***************************************/
       if (mx > 0)
         enqueue(index - 1, mx - 1, my, sx, sy);
       if (my > 0)

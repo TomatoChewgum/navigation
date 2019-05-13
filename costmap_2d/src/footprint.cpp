@@ -134,7 +134,10 @@ void transformFootprint(double x, double y, double theta, const std::vector<geom
     oriented_footprint.polygon.points.push_back(new_pt);
   }
 }
-
+/****************************************
+ * 在原来x,y的基础上偏移了一个padding的距离,
+ * 相当于将footprint放大
+ ***************************************/
 void padFootprint(std::vector<geometry_msgs::Point>& footprint, double padding)
 {
   // pad footprint in place

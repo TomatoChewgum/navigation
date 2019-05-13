@@ -260,12 +260,18 @@ void Costmap2D::worldToMapEnforceBounds(double wx, double wy, int& mx, int& my) 
 void Costmap2D::updateOrigin(double new_origin_x, double new_origin_y)
 {
   // project the new origin into the grid
+    /****************************************
+     * 计算新的原点位置,单位是cell
+     ***************************************/
   int cell_ox, cell_oy;
   cell_ox = int((new_origin_x - origin_x_) / resolution_);
   cell_oy = int((new_origin_y - origin_y_) / resolution_);
 
   // compute the associated world coordinates for the origin cell
   // because we want to keep things grid-aligned
+  /****************************************
+   * 计算新的原点位置,单位是米
+   ***************************************/
   double new_grid_ox, new_grid_oy;
   new_grid_ox = origin_x_ + cell_ox * resolution_;
   new_grid_oy = origin_y_ + cell_oy * resolution_;
@@ -273,14 +279,18 @@ void Costmap2D::updateOrigin(double new_origin_x, double new_origin_y)
   // To save casting from unsigned int to int a bunch of times
   int size_x = size_x_;
   int size_y = size_y_;
-
+  /****************************************
+   * 计算需要保存的数据窗口大小,及现在的窗口和之前窗口的重叠区域
+   ***************************************/
   // we need to compute the overlap of the new and existing windows
   int lower_left_x, lower_left_y, upper_right_x, upper_right_y;
   lower_left_x = min(max(cell_ox, 0), size_x);
   lower_left_y = min(max(cell_oy, 0), size_y);
   upper_right_x = min(max(cell_ox + size_x, 0), size_x);
   upper_right_y = min(max(cell_oy + size_y, 0), size_y);
-
+  /****************************************
+   * 初始化一个数组存储数据
+   ***************************************/
   unsigned int cell_size_x = upper_right_x - lower_left_x;
   unsigned int cell_size_y = upper_right_y - lower_left_y;
 

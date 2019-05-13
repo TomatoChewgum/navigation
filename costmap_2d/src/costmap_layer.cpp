@@ -26,7 +26,9 @@ void CostmapLayer::addExtraBounds(double mx0, double my0, double mx1, double my1
     extra_max_y_ = std::max(my1, extra_max_y_);
     has_extra_bounds_ = true;
 }
-
+/****************************************
+ * 当使用addExtraBounds更新地图之后,这个函数才会有用
+ ***************************************/
 void CostmapLayer::useExtraBounds(double* min_x, double* min_y, double* max_x, double* max_y)
 {
     if (!has_extra_bounds_)
@@ -42,7 +44,10 @@ void CostmapLayer::useExtraBounds(double* min_x, double* min_y, double* max_x, d
     extra_max_y_ = -1e6;
     has_extra_bounds_ = false;
 }
-
+/****************************************
+ * 更新指定区域内的cost值,
+ * 只有本层的cost值大于主costmap值才会被更新
+ ***************************************/
 void CostmapLayer::updateWithMax(costmap_2d::Costmap2D& master_grid, int min_i, int min_j, int max_i, int max_j)
 {
   if (!enabled_)
@@ -68,7 +73,9 @@ void CostmapLayer::updateWithMax(costmap_2d::Costmap2D& master_grid, int min_i, 
     }
   }
 }
-
+/****************************************
+ * 将需要更新区域中的cost值覆盖主costmap上
+ ***************************************/
 void CostmapLayer::updateWithTrueOverwrite(costmap_2d::Costmap2D& master_grid, int min_i, int min_j,
                                            int max_i, int max_j)
 {

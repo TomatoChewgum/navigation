@@ -54,8 +54,15 @@ using costmap_2d::Observation;
 namespace costmap_2d
 {
 
+/****************************************
+ * 初始化配置
+ ***************************************/
 void ObstacleLayer::onInitialize()
 {
+
+/****************************************
+ * 参数加载
+ ***************************************/
   ros::NodeHandle nh("~/" + name_), g_nh;
   rolling_window_ = layered_costmap_->isRolling();
 
@@ -73,6 +80,10 @@ void ObstacleLayer::onInitialize()
   double transform_tolerance;
   nh.param("transform_tolerance", transform_tolerance, 0.2);
 
+  /****************************************
+   * 加载需要订阅的话题
+   * 主要为激光和深度摄像头的数据
+   ***************************************/
   std::string topics_string;
   // get the topics that we'll subscribe to from the parameter server
   nh.param("observation_sources", topics_string, std::string(""));
@@ -129,8 +140,7 @@ void ObstacleLayer::onInitialize()
 
     // create an observation buffer
     observation_buffers_.push_back(
-        boost::shared_ptr < ObservationBuffer
-            > (new ObservationBuffer(topic, observation_keep_time, expected_update_rate, min_obstacle_height,
+        boost::shared_ptr < ObservationBuffer > (new ObservationBuffer(topic, observation_keep_time, expected_update_rate, min_obstacle_height,
                                      max_obstacle_height, obstacle_range, raytrace_range, *tf_, global_frame_,
                                      sensor_frame, transform_tolerance)));
 
@@ -146,7 +156,9 @@ void ObstacleLayer::onInitialize()
         "Created an observation buffer for source %s, topic %s, global frame: %s, "
         "expected update rate: %.2f, observation persistence: %.2f",
         source.c_str(), topic.c_str(), global_frame_.c_str(), expected_update_rate, observation_keep_time);
-
+    /****************************************
+     * 根据不同的数据类型创建话题订阅者并订阅回调函数
+     ***************************************/
     // create a callback for the topic
     if (data_type == "LaserScan")
     {

@@ -59,8 +59,14 @@ StaticLayer::~StaticLayer()
     delete dsrv_;
 }
 
+
+
 void StaticLayer::onInitialize()
 {
+
+/****************************************
+ * 参数加载
+ ***************************************/
   ros::NodeHandle nh("~/" + name_), g_nh;
   current_ = true;
 
@@ -81,7 +87,9 @@ void StaticLayer::onInitialize()
 
   lethal_threshold_ = std::max(std::min(temp_lethal_threshold, 100), 0);
   unknown_cost_value_ = temp_unknown_cost_value;
-
+  /****************************************
+   * 订阅map话题,绑定回调函数incomingMap
+   ***************************************/
   // Only resubscribe if topic has changed
   if (map_sub_.getTopic() != ros::names::resolve(map_topic))
   {
@@ -90,7 +98,9 @@ void StaticLayer::onInitialize()
     map_sub_ = g_nh.subscribe(map_topic, 1, &StaticLayer::incomingMap, this);
     map_received_ = false;
     has_updated_data_ = false;
-
+    /****************************************
+     * 阻塞直到接收到地图
+     ***************************************/
     ros::Rate r(10);
     while (!map_received_ && g_nh.ok())
     {
@@ -99,7 +109,9 @@ void StaticLayer::onInitialize()
     }
 
     ROS_INFO("Received a %d X %d map at %f m/pix", getSizeInCellsX(), getSizeInCellsY(), getResolution());
-
+    /****************************************
+     * 订阅map_update话题,绑定回调函数incomingUpdate
+     ***************************************/
     if (subscribe_to_updates_)
     {
       ROS_INFO("Subscribing to updates");
@@ -163,6 +175,10 @@ unsigned char StaticLayer::interpretValue(unsigned char value)
   return scale * LETHAL_OBSTACLE;
 }
 
+
+/****************************************
+ * 接收到静态地图的回调函数
+ ***************************************/
 void StaticLayer::incomingMap(const nav_msgs::OccupancyGridConstPtr& new_map)
 {
   unsigned int size_x = new_map->info.width, size_y = new_map->info.height;
@@ -195,7 +211,9 @@ void StaticLayer::incomingMap(const nav_msgs::OccupancyGridConstPtr& new_map)
   }
 
   unsigned int index = 0;
-
+  /****************************************
+   * 将静态地图的数据复制到本层的costmap上
+   ***************************************/
   // initialize the costmap with static data
   for (unsigned int i = 0; i < size_y; ++i)
   {
@@ -222,7 +240,9 @@ void StaticLayer::incomingMap(const nav_msgs::OccupancyGridConstPtr& new_map)
     map_sub_.shutdown();
   }
 }
-
+/****************************************
+ * 接收到更新的静态地图,将本层维护的地图进行更新
+ ***************************************/
 void StaticLayer::incomingUpdate(const map_msgs::OccupancyGridUpdateConstPtr& update)
 {
   unsigned int di = 0;
@@ -246,7 +266,9 @@ void StaticLayer::activate()
 {
   onInitialize();
 }
-
+/****************************************
+ * 关闭地图更新订阅
+ ***************************************/
 void StaticLayer::deactivate()
 {
   map_sub_.shutdown();
@@ -265,7 +287,9 @@ void StaticLayer::reset()
     onInitialize();
   }
 }
-
+/****************************************
+ * 计算需要更新的区域
+ ***************************************/
 void StaticLayer::updateBounds(double robot_x, double robot_y, double robot_yaw, double* min_x, double* min_y,
                                double* max_x, double* max_y)
 {
@@ -297,10 +321,12 @@ void StaticLayer::updateCosts(costmap_2d::Costmap2D& master_grid, int min_i, int
 
   if (!enabled_)
     return;
-
+  // if not rolling, the layered costmap (master_grid) has same coordinates as this layer
   if (!layered_costmap_->isRolling())
   {
-    // if not rolling, the layered costmap (master_grid) has same coordinates as this layer
+      /****************************************
+       * 如果使用最大值,则只有最大值写入到主costmap上
+       ***************************************/
     if (!use_maximum_)
       updateWithTrueOverwrite(master_grid, min_i, min_j, max_i, max_j);
     else
