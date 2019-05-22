@@ -145,15 +145,15 @@ if(CATKIN_ENABLE_TESTING)
   include_directories(test)
 
   # Create targets for test executables
-  add_executable(costmap_tester EXCLUDE_FROM_ALL test/costmap_tester.cpp)
+  add_executable(costmap_tester  test/costmap_tester.cpp)
   add_dependencies(tests costmap_tester)
   target_link_libraries(costmap_tester costmap_2d ${GTEST_LIBRARIES})
 
-  add_executable(footprint_tests EXCLUDE_FROM_ALL test/footprint_tests.cpp)
+  add_executable(footprint_tests  test/footprint_tests.cpp)
   add_dependencies(tests footprint_tests)
   target_link_libraries(footprint_tests costmap_2d ${GTEST_LIBRARIES})
 
-  add_executable(obstacle_tests EXCLUDE_FROM_ALL test/obstacle_tests.cpp)
+  add_executable(obstacle_tests  test/obstacle_tests.cpp)
   add_dependencies(tests obstacle_tests)
   target_link_libraries(obstacle_tests costmap_2d layers ${GTEST_LIBRARIES})
 

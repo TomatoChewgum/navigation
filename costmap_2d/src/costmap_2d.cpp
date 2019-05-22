@@ -37,6 +37,7 @@
  *********************************************************************/
 #include <costmap_2d/costmap_2d.h>
 #include <cstdio>
+#include <ros/ros.h>
 
 using namespace std;
 
@@ -72,10 +73,12 @@ void Costmap2D::initMaps(unsigned int size_x, unsigned int size_y)
 void Costmap2D::resizeMap(unsigned int size_x, unsigned int size_y, double resolution,
                           double origin_x, double origin_y)
 {
+
+  ROS_INFO("resizeMpa: size_x:%d,origin_x:%d",size_x,origin_x);
   size_x_ = size_x;
+  origin_x_ = origin_x;
   size_y_ = size_y;
   resolution_ = resolution;
-  origin_x_ = origin_x;
   origin_y_ = origin_y;
 
   initMaps(size_x, size_y);
@@ -212,6 +215,7 @@ bool Costmap2D::worldToMap(double wx, double wy, unsigned int& mx, unsigned int&
 
   mx = (int)((wx - origin_x_) / resolution_);
   my = (int)((wy - origin_y_) / resolution_);
+
 
   if (mx < size_x_ && my < size_y_)
     return true;

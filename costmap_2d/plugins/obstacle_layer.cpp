@@ -72,8 +72,9 @@ void ObstacleLayer::onInitialize()
     default_value_ = NO_INFORMATION;
   else
     default_value_ = FREE_SPACE;
-
+  ROS_INFO("matchSize");
   ObstacleLayer::matchSize();
+  ROS_INFO("matchSize");
   current_ = true;
 
   global_frame_ = layered_costmap_->getGlobalFrameID();

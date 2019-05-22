@@ -72,6 +72,7 @@ void CostmapLayer::updateWithMax(costmap_2d::Costmap2D& master_grid, int min_i, 
       it++;
     }
   }
+
 }
 /****************************************
  * 将需要更新区域中的cost值覆盖主costmap上

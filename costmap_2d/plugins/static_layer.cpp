@@ -208,6 +208,8 @@ void StaticLayer::incomingMap(const nav_msgs::OccupancyGridConstPtr& new_map)
     ROS_INFO("Resizing static layer to %d X %d at %f m/pix", size_x, size_y, new_map->info.resolution);
     resizeMap(size_x, size_y, new_map->info.resolution,
               new_map->info.origin.position.x, new_map->info.origin.position.y);
+    layered_costmap_->resizeMap(size_x, size_y, new_map->info.resolution,
+              new_map->info.origin.position.x, new_map->info.origin.position.y);
   }
 
   unsigned int index = 0;
