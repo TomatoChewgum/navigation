@@ -73,6 +73,8 @@ bool ObstacleCostFunction::prepare() {
 
 double ObstacleCostFunction::scoreTrajectory(Trajectory &traj) {
   double cost = 0;
+
+  //1. 获取按照速度比例的缩放因子
   double scale = getScalingFactor(traj, scaling_speed_, max_trans_vel_, max_scaling_factor_);
   double px, py, pth;
   if (footprint_spec_.size() == 0) {
@@ -82,7 +84,11 @@ double ObstacleCostFunction::scoreTrajectory(Trajectory &traj) {
   }
 
   for (unsigned int i = 0; i < traj.getPointsSize(); ++i) {
+    //2. 获取轨迹点的坐标和角度
+
     traj.getPoint(i, px, py, pth);
+    // world_model 有三种不同的实现,Costmap,PointGrid和VoxelGrid,这里使用的时Costmap
+    //3.获取轮廓上和机器人当前位置cost最大值
     double f_cost = footprintCost(px, py, pth,
         scale, footprint_spec_,
         costmap_, world_model_);

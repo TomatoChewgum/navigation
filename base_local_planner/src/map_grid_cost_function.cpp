@@ -81,9 +81,11 @@ double MapGridCostFunction::scoreTrajectory(Trajectory &traj) {
   unsigned int cell_x, cell_y;
   double grid_dist;
 
+  //1.获取轨迹位置,角度信息
   for (unsigned int i = 0; i < traj.getPointsSize(); ++i) {
     traj.getPoint(i, px, py, pth);
 
+    //2.设置当前点的偏移
     // translate point forward if specified
     if (xshift_ != 0.0) {
       px = px + xshift_ * cos(pth);
@@ -96,13 +98,17 @@ double MapGridCostFunction::scoreTrajectory(Trajectory &traj) {
     }
 
     //we won't allow trajectories that go off the map... shouldn't happen that often anyways
+    //3.检查当前点是否还在地图上
     if ( ! costmap_->worldToMap(px, py, cell_x, cell_y)) {
       //we're off the map
       ROS_WARN("Off Map %f, %f", px, py);
       return -4.0;
     }
+
+    //4.获取当前点到local_goal或者global_path的距离
     grid_dist = getCellCosts(cell_x, cell_y);
     //if a point on this trajectory has no clear path to the goal... it may be invalid
+    //5.设置失败时停止
     if (stop_on_failure_) {
       if (grid_dist == map_.obstacleCosts()) {
         return -3.0;
@@ -111,6 +117,7 @@ double MapGridCostFunction::scoreTrajectory(Trajectory &traj) {
       }
     }
 
+    //6.按照不同的模式获得整条路径的cost值.
     switch( aggregationType_ ) {
     case Last:
       cost = grid_dist;

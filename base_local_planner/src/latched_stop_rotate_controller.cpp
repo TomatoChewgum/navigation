@@ -206,6 +206,8 @@ bool LatchedStopRotateController::computeVelocityCommandsStopRotate(geometry_msg
                           Eigen::Vector3f vel,
                           Eigen::Vector3f vel_samples)> obstacle_check) {
   //we assume the global goal is the last point in the global plan
+
+    //1.获取目标点
   geometry_msgs::PoseStamped goal_pose;
   if ( ! planner_util->getGoal(goal_pose)) {
     ROS_ERROR("Could not get goal pose");
@@ -220,6 +222,8 @@ bool LatchedStopRotateController::computeVelocityCommandsStopRotate(geometry_msg
     ROS_INFO("Goal position reached, stopping and turning in place");
     xy_tolerance_latch_ = true;
   }
+
+  //2.如果与目标点的角度小于允许误差,则发布停止速度
   //check to see if the goal orientation has been reached
   double goal_th = tf2::getYaw(goal_pose.pose.orientation);
   double angle = base_local_planner::getGoalOrientationAngleDifference(global_pose, goal_th);
@@ -237,6 +241,7 @@ bool LatchedStopRotateController::computeVelocityCommandsStopRotate(geometry_msg
     odom_helper_.getOdom(base_odom);
 
     //if we're not stopped yet... we want to stop... taking into account the acceleration limits of the robot
+    //3.使用加速度限制的方式停止机器人
     if ( ! rotating_to_goal_ && !base_local_planner::stopped(base_odom, limits.theta_stopped_vel, limits.trans_stopped_vel)) {
       if ( ! stopWithAccLimits(
           global_pose,
@@ -251,6 +256,7 @@ bool LatchedStopRotateController::computeVelocityCommandsStopRotate(geometry_msg
       ROS_DEBUG("Stopping...");
     }
     //if we're stopped... then we want to rotate to goal
+    //4.使用旋转的方式停止机器人,只发布角速度信息,线速度为0
     else {
       //set this so that we know its OK to be moving
       rotating_to_goal_ = true;

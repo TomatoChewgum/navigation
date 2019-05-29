@@ -131,6 +131,8 @@ namespace dwa_local_planner {
     //Assuming this planner is being run within the navigation stack, we can
     //just do an upward search for the frequency at which its being run. This
     //also allows the frequency to be overwritten locally.
+
+    //1.设置模拟周期
     std::string controller_frequency_param_name;
     if(!private_nh.searchParam("controller_frequency", controller_frequency_param_name)) {
       sim_period_ = 0.05;
@@ -146,8 +148,11 @@ namespace dwa_local_planner {
     }
     ROS_INFO("Sim period is set to %.2f", sim_period_);
 
+    //2.重置震荡costFunction标志
+
     oscillation_costs_.resetOscillationFlags();
 
+    //3.参数设置
     bool sum_scores;
     private_nh.param("sum_scores", sum_scores, false);
     obstacle_costs_.setSumScores(sum_scores);
@@ -161,6 +166,7 @@ namespace dwa_local_planner {
     traj_cloud_pub_ = private_nh.advertise<sensor_msgs::PointCloud2>("trajectory_cloud", 1);
     private_nh.param("publish_traj_pc", publish_traj_pc_, false);
 
+    //4. 按照指定顺序将cost function加入到队列中
     // set up all the cost functions that will be applied in order
     // (any function returning negative values will abort scoring, so the order can improve performance)
     std::vector<base_local_planner::TrajectoryCostFunction*> critics;
@@ -172,10 +178,12 @@ namespace dwa_local_planner {
     critics.push_back(&goal_costs_); // prefers trajectories that go towards (local) goal, based on wave propagation
     critics.push_back(&twirling_costs_); // optionally prefer trajectories that don't spin
 
+    //5. 将轨迹生成器添加到队列中
     // trajectory generators
     std::vector<base_local_planner::TrajectorySampleGenerator*> generator_list;
     generator_list.push_back(&generator_);
 
+    //6. 创建分数计算器
     scored_sampling_planner_ = base_local_planner::SimpleScoredSamplingPlanner(generator_list, critics);
 
     private_nh.param("cheat_factor", cheat_factor_, 1.0);
@@ -305,6 +313,7 @@ namespace dwa_local_planner {
     base_local_planner::LocalPlannerLimits limits = planner_util_->getCurrentLimits();
 
     // prepare cost functions and generators for this run
+    // 1. 初始化轨迹生成器
     generator_.initialise(pos,
         vel,
         goal,
@@ -313,9 +322,12 @@ namespace dwa_local_planner {
 
     result_traj_.cost_ = -7;
     // find best trajectory by sampling and scoring the samples
+
+    //2. 使用SimpleScoredSamplingPlanner计算出一条最好的轨迹
     std::vector<base_local_planner::Trajectory> all_explored;
     scored_sampling_planner_.findBestTrajectory(result_traj_, &all_explored);
 
+    //3. 发布获取到的轨迹
     if(publish_traj_pc_)
     {
         sensor_msgs::PointCloud2 traj_cloud;
@@ -365,8 +377,10 @@ namespace dwa_local_planner {
     }
 
     // debrief stateful scoring functions
+    //为了下次迭代计算,更新震荡损失函数的标志位.
     oscillation_costs_.updateOscillationFlags(pos, &result_traj_, planner_util_->getCurrentLimits().min_vel_trans);
 
+    //4. 返回一个合法的相应速度,轨迹模拟时,获取到的就是速度向量空间
     //if we don't have a legal trajectory, we'll just command zero
     if (result_traj_.cost_ < 0) {
       drive_velocities.pose.position.x = 0;

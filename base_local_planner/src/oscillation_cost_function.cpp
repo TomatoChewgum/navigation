@@ -59,6 +59,7 @@ void OscillationCostFunction::updateOscillationFlags(Eigen::Vector3f pos, base_l
       prev_stationary_pos_ = pos;
     }
     //if we've got restrictions... check if we can reset any oscillation flags
+    // 方向状态发生改变
     if(forward_pos_only_ || forward_neg_only_
         || strafe_pos_only_ || strafe_neg_only_
         || rot_pos_only_ || rot_neg_only_){
@@ -101,6 +102,8 @@ void OscillationCostFunction::resetOscillationFlags() {
 bool OscillationCostFunction::setOscillationFlags(base_local_planner::Trajectory* t, double min_vel_trans) {
   bool flag_set = false;
   //set oscillation flags for moving forward and backward
+
+  //1. 设置向前或者向后移动的标志位
   if (t->xv_ < 0.0) {
     if (forward_pos_) {
       forward_neg_only_ = true;

@@ -104,8 +104,9 @@ namespace base_local_planner{
       const costmap_2d::Costmap2D& costmap){
 
     //if the cell is an obstacle set the max path distance
+    //如果这个cell是一个障碍物,将设置最大的路径距离
     unsigned char cost = costmap.getCost(check_cell->cx, check_cell->cy);
-    if(! getCell(check_cell->cx, check_cell->cy).within_robot &&
+    if(!getCell(check_cell->cx, check_cell->cy).within_robot &&
         (cost == costmap_2d::LETHAL_OBSTACLE ||
          cost == costmap_2d::INSCRIBED_INFLATED_OBSTACLE ||
          cost == costmap_2d::NO_INFORMATION)){
@@ -129,7 +130,7 @@ namespace base_local_planner{
       map_[i].within_robot = false;
     }
   }
-
+  //调整路径的分辨率
   void MapGrid::adjustPlanResolution(const std::vector<geometry_msgs::PoseStamped>& global_plan_in,
       std::vector<geometry_msgs::PoseStamped>& global_plan_out, double resolution) {
     if (global_plan_in.size() == 0) {
@@ -183,6 +184,7 @@ namespace base_local_planner{
     }
     unsigned int i;
     // put global path points into local map until we reach the border of the local map
+    //将global_path_in_local添加到计算队列中
     for (i = 0; i < adjusted_global_plan.size(); ++i) {
       double g_x = adjusted_global_plan[i].pose.position.x;
       double g_y = adjusted_global_plan[i].pose.position.y;
@@ -209,16 +211,20 @@ namespace base_local_planner{
   //mark the point of the costmap as local goal where global_plan first leaves the area (or its last point)
   void MapGrid::setLocalGoal(const costmap_2d::Costmap2D& costmap,
       const std::vector<geometry_msgs::PoseStamped>& global_plan) {
+
+    //1.检查本地地图与输入地图是否匹配
     sizeCheck(costmap.getSizeInCellsX(), costmap.getSizeInCellsY());
 
     int local_goal_x = -1;
     int local_goal_y = -1;
     bool started_path = false;
 
+    //2.调整输入的路径,填充完整
     std::vector<geometry_msgs::PoseStamped> adjusted_global_plan;
     adjustPlanResolution(global_plan, adjusted_global_plan, costmap.getResolution());
 
     // skip global path points until we reach the border of the local map
+    //3. 获取local goal
     for (unsigned int i = 0; i < adjusted_global_plan.size(); ++i) {
       double g_x = adjusted_global_plan[i].pose.position.x;
       double g_y = adjusted_global_plan[i].pose.position.y;
@@ -238,6 +244,7 @@ namespace base_local_planner{
       return;
     }
 
+    //4. 将local goal 点添加到距离计算队列中
     queue<MapCell*> path_dist_queue;
     if (local_goal_x >= 0 && local_goal_y >= 0) {
       MapCell& current = getCell(local_goal_x, local_goal_y);
@@ -247,6 +254,7 @@ namespace base_local_planner{
       path_dist_queue.push(&current);
     }
 
+    //5. 计算local_costm上每个cell到local_goal的距离
     computeTargetDistance(path_dist_queue, costmap);
   }
 

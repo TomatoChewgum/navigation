@@ -57,6 +57,10 @@ namespace base_local_planner {
  * dwa_planner will sample max-x-velocities from 0m/s to 0.2m/s.
  * trajectory rollout approach will sample max-x-velocities 0m/s up to 1m/s
  * trajectory rollout approach does so respecting the acceleration limit, so it gradually increases velocity
+ *
+ * 基于自由度等距采样生成轨迹
+ * 这是一个简单的粗略的TrajectorySampleGenerator接口实现,还可以考虑更有效的实现.
+ * Trajectory Rollout 算法遵循加速度限制,因此它是逐渐增加速度.
  */
 class SimpleTrajectoryGenerator: public base_local_planner::TrajectorySampleGenerator {
 public:

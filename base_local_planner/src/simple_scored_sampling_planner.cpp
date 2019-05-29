@@ -84,6 +84,8 @@ namespace base_local_planner {
     double loop_traj_cost, best_traj_cost = -1;
     bool gen_success;
     int count, count_valid;
+
+    //1. 检测costFunction是否可用
     for (std::vector<TrajectoryCostFunction*>::iterator loop_critic = critics_.begin(); loop_critic != critics_.end(); ++loop_critic) {
       TrajectoryCostFunction* loop_critic_p = *loop_critic;
       if (loop_critic_p->prepare() == false) {
@@ -92,17 +94,23 @@ namespace base_local_planner {
       }
     }
 
+    //2. 遍历每个生成器,为每一条轨迹进行打分
     for (std::vector<TrajectorySampleGenerator*>::iterator loop_gen = gen_list_.begin(); loop_gen != gen_list_.end(); ++loop_gen) {
       count = 0;
       count_valid = 0;
       TrajectorySampleGenerator* gen_ = *loop_gen;
+
+      //3. 遍历当前生成器的每一个轨迹,查找最优的那条路径
       while (gen_->hasMoreTrajectories()) {
         gen_success = gen_->nextTrajectory(loop_traj);
         if (gen_success == false) {
           // TODO use this for debugging
           continue;
         }
+
+        //4. 为路径进行打分,获取最优的路径(csot最小的正值)
         loop_traj_cost = scoreTrajectory(loop_traj, best_traj_cost);
+
         if (all_explored != NULL) {
           loop_traj.cost_ = loop_traj_cost;
           all_explored->push_back(loop_traj);

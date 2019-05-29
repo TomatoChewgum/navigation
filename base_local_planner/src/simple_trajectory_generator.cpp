@@ -64,10 +64,12 @@ void SimpleTrajectoryGenerator::initialise(
     base_local_planner::LocalPlannerLimits* limits,
     const Eigen::Vector3f& vsamples,
     bool discretize_by_time) {
+
+  //生成所有的速度向量,tr生成全部,dwa只生成一个周期内的
   /*
    * We actually generate all velocity sample vectors here, from which to generate trajectories later on
    */
-  double max_vel_th = limits->max_vel_theta;
+  double max_vel_th = limits->max_vel_theta;   //
   double min_vel_th = -1.0 * max_vel_th;
   discretize_by_time_ = discretize_by_time;
   Eigen::Vector3f acc_lim = limits->getAccLimits();
@@ -92,6 +94,7 @@ void SimpleTrajectoryGenerator::initialise(
       // there is no point in overshooting the goal, and it also may break the
       // robot behavior, so we limit the velocities to those that do not overshoot in sim_time
       double dist = hypot(goal[0] - pos[0], goal[1] - pos[1]);
+      //1.计算最大最小速度
       max_vel_x = std::max(std::min(max_vel_x, dist / sim_time_), min_vel_x);
       max_vel_y = std::max(std::min(max_vel_y, dist / sim_time_), min_vel_y);
 
@@ -190,6 +193,7 @@ bool SimpleTrajectoryGenerator::generateTrajectory(
 
   // make sure that the robot would at least be moving with one of
   // the required minimum velocities for translation and rotation (if set)
+  //确保机器人在移动且计算速度大于最小速度
   if ((limits_->min_vel_trans >= 0 && vmag + eps < limits_->min_vel_trans) &&
       (limits_->min_vel_theta >= 0 && fabs(sample_target_vel[2]) + eps < limits_->min_vel_theta)) {
     return false;

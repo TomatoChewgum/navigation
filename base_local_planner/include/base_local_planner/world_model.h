@@ -67,6 +67,8 @@ namespace base_local_planner {
         double cos_th = cos(theta);
         double sin_th = sin(theta);
         std::vector<geometry_msgs::Point> oriented_footprint;
+
+        //1.获取移动后的机器人外轮廓位置
         for(unsigned int i = 0; i < footprint_spec.size(); ++i){
           geometry_msgs::Point new_pt;
           new_pt.x = x + (footprint_spec[i].x * cos_th - footprint_spec[i].y * sin_th);
@@ -78,6 +80,7 @@ namespace base_local_planner {
         robot_position.x = x;
         robot_position.y = y;
 
+        //2.计算机器人轮廓的内切圆和外切圆
         if(inscribed_radius==0.0){
           costmap_2d::calculateMinAndMaxDistances(footprint_spec, inscribed_radius, circumscribed_radius);
         }

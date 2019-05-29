@@ -55,6 +55,8 @@ namespace base_local_planner {
       return -1.0;
 
     //if number of points in the footprint is less than 3, we'll just assume a circular robot
+
+    //如果点数小于3个,认为机器人的轮廓为圆形,如果机器人碰到障碍物,返回-1,否则返回机器人所在格子的cost值
     if(footprint.size() < 3){
       unsigned char cost = costmap_.getCost(cell_x, cell_y);
       //if(cost == LETHAL_OBSTACLE || cost == INSCRIBED_INFLATED_OBSTACLE)
@@ -63,12 +65,14 @@ namespace base_local_planner {
       return cost;
     }
 
+
     //now we really have to lay down the footprint in the costmap grid
     unsigned int x0, x1, y0, y1;
     double line_cost = 0.0;
     double footprint_cost = 0.0;
 
     //we need to rasterize each line in the footprint
+    //计算轮廓的cost值,即选取轮廓上cost的最大值
     for(unsigned int i = 0; i < footprint.size() - 1; ++i){
       //get the cell coord of the first point
       if(!costmap_.worldToMap(footprint[i].x, footprint[i].y, x0, y0))
@@ -107,6 +111,7 @@ namespace base_local_planner {
   }
 
   //calculate the cost of a ray-traced line
+  //计算一条线的cost值,选取线上所有点中的最大值
   double CostmapModel::lineCost(int x0, int x1, int y0, int y1) const {
     double line_cost = 0.0;
     double point_cost = -1.0;
