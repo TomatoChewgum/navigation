@@ -72,6 +72,8 @@ pf_t *pf_alloc(int min_samples, int max_samples,
   pf->dist_threshold = 0.5; 
   
   pf->current_set = 0;
+
+  //初始化两个粒子集合
   for (j = 0; j < 2; j++)
   {
     set = pf->sets + j;
@@ -79,6 +81,7 @@ pf_t *pf_alloc(int min_samples, int max_samples,
     set->sample_count = max_samples;
     set->samples = calloc(max_samples, sizeof(pf_sample_t));
 
+    //1. 初始化每个粒子信息
     for (i = 0; i < set->sample_count; i++)
     {
       sample = set->samples + i;
@@ -89,6 +92,8 @@ pf_t *pf_alloc(int min_samples, int max_samples,
     }
 
     // HACK: is 3 times max_samples enough?
+
+    //2.创建大小为3 * max_samples的kd树
     set->kdtree = pf_kdtree_alloc(3 * max_samples);
 
     set->cluster_count = 0;
@@ -135,6 +140,7 @@ void pf_init(pf_t *pf, pf_vector_t mean, pf_matrix_t cov)
   pf_sample_t *sample;
   pf_pdf_gaussian_t *pdf;
   
+  //一般来说current_set为0,所以我们使用的就是第一个粒子集合
   set = pf->sets + pf->current_set;
   
   // Create the kd tree for adaptive sampling
@@ -145,6 +151,7 @@ void pf_init(pf_t *pf, pf_vector_t mean, pf_matrix_t cov)
   pdf = pf_pdf_gaussian_alloc(mean, cov);
     
   // Compute the new sample poses
+  //1.根据初始左边及协方差信息生成初始随机粒子,并将粒子添加到kd树上
   for (i = 0; i < set->sample_count; i++)
   {
     sample = set->samples + i;
@@ -212,6 +219,8 @@ void pf_init_converged(pf_t *pf){
   pf->converged = 0; 
 }
 
+
+
 int pf_update_converged(pf_t *pf)
 {
   int i;
@@ -222,6 +231,8 @@ int pf_update_converged(pf_t *pf)
   set = pf->sets + pf->current_set;
   double mean_x = 0, mean_y = 0;
 
+
+  //1.求出最新的粒子集合的平均位置
   for (i = 0; i < set->sample_count; i++){
     sample = set->samples + i;
 
@@ -231,6 +242,7 @@ int pf_update_converged(pf_t *pf)
   mean_x /= set->sample_count;
   mean_y /= set->sample_count;
   
+  //2.查找是否有粒子距离平均位置超过距离阈值dist_threshold
   for (i = 0; i < set->sample_count; i++){
     sample = set->samples + i;
     if(fabs(sample->pose.v[0] - mean_x) > pf->dist_threshold || 
@@ -282,6 +294,8 @@ void pf_update_sensor(pf_t *pf, pf_sensor_model_fn_t sensor_fn, void *sensor_dat
       w_avg += sample->weight;
       sample->weight /= total;
     }
+
+    //随机采样的长期似然平均与短期似然平均
     // Update running averages of likelihood of samples (Prob Rob p258)
     w_avg /= set->sample_count;
     if(pf->w_slow == 0.0)
@@ -312,6 +326,7 @@ void pf_update_sensor(pf_t *pf, pf_sensor_model_fn_t sensor_fn, void *sensor_dat
 // Resample the distribution
 void pf_update_resample(pf_t *pf)
 {
+
   int i;
   double total;
   pf_sample_set_t *set_a, *set_b;
@@ -327,6 +342,7 @@ void pf_update_resample(pf_t *pf)
   set_a = pf->sets + pf->current_set;
   set_b = pf->sets + (pf->current_set + 1) % 2;
 
+  //1. 构建重采样概率计算表
   // Build up cumulative probability table for resampling.
   // TODO: Replace this with a more efficient procedure
   // (e.g., http://www.network-theory.co.uk/docs/gslref/GeneralDiscreteDistributions.html)
@@ -336,12 +352,16 @@ void pf_update_resample(pf_t *pf)
     c[i+1] = c[i]+set_a->samples[i].weight;
 
   // Create the kd tree for adaptive sampling
+  //2. 创建重采样的kd树
   pf_kdtree_clear(set_b->kdtree);
   
   // Draw samples from set a to create set b.
+  //3. 从集合a中重采样生成集合b
   total = 0;
   set_b->sample_count = 0;
 
+
+  //4. 计算随机粒子添加权重
   w_diff = 1.0 - pf->w_fast / pf->w_slow;
   if(w_diff < 0.0)
     w_diff = 0.0;
@@ -361,6 +381,7 @@ void pf_update_resample(pf_t *pf)
   {
     sample_b = set_b->samples + set_b->sample_count++;
 
+    //5. 增加随机粒子
     if(drand48() < w_diff)
       sample_b->pose = (pf->random_pose_fn)(pf->random_pose_data);
     else
@@ -446,6 +467,12 @@ void pf_update_resample(pf_t *pf)
 
 // Compute the required number of samples, given that there are k bins
 // with samples in them.  This is taken directly from Fox et al.
+/**
+ * @brief pf_resample_limit     计算重采样的最大粒子数,使用KLD采样的思想来调节粒子集的大小
+ * @param pf                    粒子滤波器
+ * @param k                     kd树的叶子数
+ * @return                      重采样的最大粒子数
+ */
 int pf_resample_limit(pf_t *pf, int k)
 {
   double a, b, c, x;

@@ -39,6 +39,8 @@ class CachedDistanceMap
     CachedDistanceMap(double scale, double max_dist) : 
       distances_(NULL), scale_(scale), max_dist_(max_dist) 
     {
+
+        //计算一个点周围距离分布,cell圆形
       cell_radius_ = max_dist / scale;
       distances_ = new double *[cell_radius_+2];
       for(int i=0; i<=cell_radius_+1; i++)
@@ -130,6 +132,7 @@ void map_update_cspace(map_t *map, double max_occ_dist)
   CachedDistanceMap* cdm = get_distance_map(map->scale, map->max_occ_dist);
 
   // Enqueue all the obstacle cells
+  //1.将所有的占有格压入到队列中
   CellData cell;
   cell.map_ = map;
   for(int i=0; i<map->size_x; i++)
@@ -148,7 +151,7 @@ void map_update_cspace(map_t *map, double max_occ_dist)
 	map->cells[MAP_INDEX(map, i, j)].occ_dist = max_occ_dist;
     }
   }
-
+  //2.计算空闲格到最近的占有格的距离
   while(!Q.empty())
   {
     CellData current_cell = Q.top();

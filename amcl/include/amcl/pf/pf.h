@@ -114,6 +114,7 @@ typedef struct _pf_t
   int min_samples, max_samples;
 
   // Population size parameters
+  //KDL采样中的误差界限
   double pop_err, pop_z;
   
   // The sample sets.  We keep two sets and use [current_set]
@@ -185,6 +186,8 @@ void pf_draw_cluster_stats(pf_t *pf, struct _rtk_fig_t *fig);
 
 //calculate if the particle filter has converged - 
 //and sets the converged flag in the current set and the pf 
+
+//计算粒子的聚集程度,设置converged标志位
 int pf_update_converged(pf_t *pf);
 
 //sets the current set and pf converged values to zero

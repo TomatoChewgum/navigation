@@ -229,12 +229,17 @@ double AMCLLaser::LikelihoodFieldModel(AMCLLaserData *data, pf_sample_set_t* set
   total_weight = 0.0;
 
   // Compute the sample weights
+
+  //1. 计算样本权重
   for (j = 0; j < set->sample_count; j++)
   {
+
+    //2. 遍历获取所有样本
     sample = set->samples + j;
     pose = sample->pose;
 
     // Take account of the laser pose relative to the robot
+    //3. 计算当前样本激光器的位置
     pose = pf_vector_coord_add(self->laser_pose, pose);
 
     p = 1.0;
@@ -279,10 +284,14 @@ double AMCLLaser::LikelihoodFieldModel(AMCLLaserData *data, pf_sample_set_t* set
         z = self->map->max_occ_dist;
       else
         z = self->map->cells[MAP_INDEX(self->map,mi,mj)].occ_dist;
+
+      //似然域模型 P130
       // Gaussian model
       // NOTE: this should have a normalization of 1/(sqrt(2pi)*sigma)
+      // 高斯模型
       pz += self->z_hit * exp(-(z * z) / z_hit_denom);
       // Part 2: random measurements
+      //随机测量误差
       pz += self->z_rand * z_rand_mult;
 
       // TODO: outlier rejection for short readings

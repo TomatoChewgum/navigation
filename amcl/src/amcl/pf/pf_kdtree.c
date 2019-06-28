@@ -112,7 +112,7 @@ void pf_kdtree_clear(pf_kdtree_t *self)
 void pf_kdtree_insert(pf_kdtree_t *self, pf_vector_t pose, double value)
 {
   int key[3];
-
+  //1. 将位姿信息放大作为key值
   key[0] = floor(pose.v[0] / self->size[0]);
   key[1] = floor(pose.v[1] / self->size[1]);
   key[2] = floor(pose.v[2] / self->size[2]);
@@ -365,6 +365,7 @@ void pf_kdtree_cluster(pf_kdtree_t *self)
   queue = calloc(self->node_count, sizeof(queue[0]));
 
   // Put all the leaves in a queue
+  //1.将所有的叶子节点添加到双向队列中
   for (i = 0; i < self->node_count; i++)
   {
     node = self->nodes + i;
